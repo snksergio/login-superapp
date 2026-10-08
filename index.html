@@ -156,6 +156,7 @@
   .btn { width: 100%; height: 54px; flex-shrink: 0; border-radius: 27px; border: 0; background: var(--verde); color: #fff; font-size: 16px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 8px; }
   .btn[aria-disabled="true"] { border: 1px solid var(--borda); background: #fff; color: var(--tinta-4); cursor: default; }
   .btn.sec { border: 1px solid var(--borda); background: #fff; color: var(--tinta); }
+  #usar-digital svg { color: var(--verde); }
   .btn.alerta { background: #B45309; }
   .link { height: 44px; padding: 0 4px; border: 0; background: transparent; color: var(--tinta-2); font-size: 13.5px; font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
   .link.verde { color: var(--verde-esc); }
@@ -923,7 +924,7 @@ TELAS.senha = {
 <div style="margin-top: 4px" class="marca">${LOGO_COR}</div>
 <div style="margin: 22px 16px 0">${cartaoUsuario()}</div>
 <div style="margin: 18px 16px 0">${campoSenha({ nota: dd.aparelhoNovo ? 'Este celular ainda não está cadastrado na sua conta.' : '' })}</div>${S.v2 && dd.salvo && !S.bio ? linhaBio() : ''}
-<div class="rodape sobre-teclado">${botao('Entrar', { id: 'entrar', des: true })}<button class="link" id="esqueci">Esqueci minha senha</button></div>
+<div class="rodape sobre-teclado">${botao('Entrar', { id: 'entrar', des: true })}${digitalNaSenha(dd) ? `<div style="margin-top: 10px">${botao('Entrar com a digital', { id: 'usar-digital', sec: true, icone: 'digital' })}</div>` : ''}<button class="link" id="esqueci">Esqueci minha senha</button></div>
 ${tecladoAlfa()}`,
   liga: (el, dd) => {
     ligaCab(el);
@@ -952,12 +953,16 @@ ${tecladoAlfa()}`,
     const ub = $('#usar-bio', el);
     if (ub) ub.addEventListener('click', () => { S.querBio = ub.getAttribute('aria-checked') !== 'true'; ub.setAttribute('aria-checked', String(S.querBio)); });
     liga(el, '#esqueci', () => { S.aposCodigo = 'criar-senha'; S.fluxoSenha = 'nova'; vai('canal'); });
+    // back to the fingerprint without leaving this screen: closing or "Usar senha" keeps the person here
+    liga(el, '#usar-digital', () => pedeDigital({ aoOk: () => entraHome('cliente', 'Bem-vindo de volta, Rafael'), aoBloqueio: () => vai('bio-pausada', { modo: 'fade', dados: { variante: 'tentativas' } }) }));
     liga(el, '[data-trocar]', () => {
       if (dd.salvo) { S.salvo = false; S.bio = false; S.cpf = ''; hist.length = 0; hist.push({ id: 'boasvindas' }); vai('cpf'); toast('Você saiu desta conta neste aparelho', 'info'); }
       else volta();
     });
   },
 };
+// the saved user still has the fingerprint on (original flow): offer it again on the password screen
+const digitalNaSenha = dd => !!(dd.salvo && !dd.reativar && S.bio && !S.v2);
 const aposSenha = dd => {
   if (dd.salvo && !dd.reativar) return S.v2 ? entraV2() : entraHome('cliente', 'Bem-vindo de volta, Rafael');
   if (dd.reativar) { S.aposBio = 'home-cliente'; return vai('biometria-ativar', { dados: { reativar: true } }); }
